@@ -1,0 +1,6 @@
+; $Id: $
+name = Webform Bonus Pack
+description = Provides Webform mapping component and .txt download option.
+core = 6.x
+package = Webform
+dependencies[] = webform

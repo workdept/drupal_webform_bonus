@@ -1,0 +1,8 @@
+; $Id: $
+name = Webform Digest
+description = Sends  to email digest of webform submissions.
+core = 6.x
+package = Webform
+dependencies[] = webform
+dependencies[] = webform_bonus
+dependencies[] = mimemail
