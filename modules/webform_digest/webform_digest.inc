@@ -169,13 +169,19 @@ function _webform_digest_set_defualt_value(&$item, $key, &$form_state) {
   }
 }
 
-/*
+
+/**
  * Send digest.
  */
-
 function _webform_digest_send_digest($nid) {
   module_load_include('inc', 'webform', 'includes/webform.report');
-  $node = node_load($nid);
+
+  // Indicates that webform_digest is currently sending emails.
+  // Used in webform_digest_nodeapi and in  webform_results_download to override standard behaviour.
+  $GLOBALS['webform_digest_send'] = true;
+
+  // Reset node cache, it should contain some overriden information
+  $node = node_load($nid, NULL, TRUE);
 
   // Get record from database.
   $record = db_fetch_array(db_query('SELECT * FROM {webform_digest} WHERE nid=%d', array($node->nid)));
@@ -276,7 +282,6 @@ function _webform_digest_send_digest($nid) {
   }
 
   // Set global variables, which acts as arguments to overriden exporter.
-  $GLOBALS['webform_digest_send'] = true;
   $GLOBALS['webform_digest_nid'] = $node->nid;
   if ($record['new_data'] && $record['sent']) {
     $GLOBALS['webform_digest_sent'] = $record['sent'];
@@ -292,12 +297,16 @@ function _webform_digest_send_digest($nid) {
     // Submit and email digest.
     _webform_digest_send_digest_email(array($email), $download_form_state, $node);
   }
+
   // Unser global variables.
   unset($GLOBALS['webform_digest_count']);
   unset($GLOBALS['webform_digest_map']);
   unset($GLOBALS['webform_digest_sent']);
   unset($GLOBALS['webform_digest_nid']);
   unset($GLOBALS['webform_digest_send']);
+
+  // Reset node cache which contains some overriden information
+  node_load($nid, NULL, TRUE);
 }
 
 
@@ -336,6 +345,7 @@ function _webform_digest_send_digest_email($emails, $download_form_state, $node)
       'filemime' => $headers['content-type'],
       'filecontent' => $file_content
   );
+  
   // Send emails
   mimemail($mail_from, $emails, $subject, $message, true, array(), NULL, array($file), 'webform_digest');
 }

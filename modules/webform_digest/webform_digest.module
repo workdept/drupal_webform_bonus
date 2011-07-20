@@ -91,6 +91,11 @@ function webform_digest_cron() {
  */
 function webform_digest_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   if ( $node->type == 'webform' && $op == 'load') {
+
+    // Don't override webform emails addition, when sending digest or editing cron.
+    if (arg(2) == 'webform' && arg(3) == 'emails') return;
+    if ($GLOBALS['webform_digest_send'] == true) return;
+    
     $enabled = db_result(db_query("SELECT enabled FROM {webform_digest} WHERE nid=%d", array($node->nid)));
     if ($enabled) {
       module_load_include('module', 'webform', 'webform');

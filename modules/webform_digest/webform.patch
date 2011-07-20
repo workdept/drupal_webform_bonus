@@ -7,7 +7,7 @@ Index: webform/includes/webform.report.inc
    @readfile($file_name);  // The @ makes it silent.
    @unlink($file_name);  // Clean up, the @ makes it silent.
 -  exit();
-+  if (!$GLOBALS['webform_digest_send']) {
++  if (!(module_exists('webform_digest') && $GLOBALS['webform_digest_send'])) {
 +    exit();
 +  }
  }
