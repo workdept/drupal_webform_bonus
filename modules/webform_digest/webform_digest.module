@@ -39,9 +39,9 @@ function webform_digest_webform_exporters($return = false) {
 
 /**
  * Implementation of hook_form_alter().
- * Unset digest exportets, which are used for technical reasons.
  */
 function webform_digest_form_alter(&$form, &$form_state, $form_id) {
+  // Unset digest exportets, which are used for technical reasons.
   if ($form_id == 'webform_results_download_form' || $form_id == 'webform_digest_form') {
     if (!strstr($form_state['values']['format'], '_digest')) {
       foreach ($form['format']['#options'] as $format => $value) {
@@ -51,7 +51,19 @@ function webform_digest_form_alter(&$form, &$form_state, $form_id) {
       }
     }
   }
+  // Unset component option from some fields when webform digest is used
+  elseif ($form_id == 'webform_email_edit_form') {
+    $enabled = db_result(db_query("SELECT enabled FROM {webform_digest} WHERE nid=%d", array($form['node']['#value']->nid)));
+    if ($enabled) {
+      $elements = array('subject', 'from_address', 'from_name');
+      foreach ($elements as $element) {
+        unset($form[$element . '_option']['#options']['component']);
+        unset($form[$element . '_component']);
+      }
+    }
+  }
 }
+
 
 
 /**

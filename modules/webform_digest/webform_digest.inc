@@ -18,19 +18,19 @@ function webform_digest_form(&$form_state, $node) {
   $form = array();
 
   // Get record from database.
-  $record = db_fetch_array(db_query('SELECT * FROM {webform_digest} WHERE nid=%d', array($node->nid)));
+  $digest_conf = db_fetch_array(db_query('SELECT * FROM {webform_digest} WHERE nid=%d', array($node->nid)));
 
   // Define form elements.
   $form['enabled'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable digest delivery.'),
-    '#default_value' => isset($record['enabled']) ? $record['enabled'] : 0,
+    '#default_value' => isset($digest_conf['enabled']) ? $digest_conf['enabled'] : 0,
     '#description' => t('If checkbox is checked, digest will be sent to email addresses specified in the E-mails settings page of Wefborm.'),
   );
   $form['new_data'] = array(
     '#type' => 'checkbox',
     '#title' => t('Send only new data.'),
-    '#default_value' => isset($record['new_data']) ? $record['new_data'] : 0,
+    '#default_value' => isset($digest_conf['new_data']) ? $digest_conf['new_data'] : 0,
     '#description' => t('If checkbox is checked, digest will include only new data since last email.'),
   );
   $periods = webform_digest_periods();
@@ -38,21 +38,21 @@ function webform_digest_form(&$form_state, $node) {
   $form['period'] = array(
     '#type' => 'select',
     '#title' => t('Frequency'),
-    '#default_value' => isset($record['period']) ? $record['period'] : 0,
+    '#default_value' => isset($digest_conf['period']) ? $digest_conf['period'] : 0,
     '#options' => $periods,
     '#description' => t('Choose how often digest should be sent.'),
   );
   $form['daily_granularity_month'] = array(
     '#type' => 'select',
     '#title' => t('Day of month'),
-    '#default_value' => isset($record['daily_granularity']) ? $record['daily_granularity'] : 1,
+    '#default_value' => isset($digest_conf['daily_granularity']) ? $digest_conf['daily_granularity'] : 1,
     '#options' => array_combine(range(1, 31), range(1, 31)),
     '#description' => t('Choose day of month when digest should be sent.'),
   );
   $form['daily_granularity_week'] = array(
     '#type' => 'select',
     '#title' => t('Day of week'),
-    '#default_value' => isset($record['daily_granularity']) ? $record['daily_granularity'] : 0,
+    '#default_value' => isset($digest_conf['daily_granularity']) ? $digest_conf['daily_granularity'] : 0,
     '#options' => array(
       '0' => t('Sunday'),
       '1' => t('Monday'),
@@ -67,17 +67,17 @@ function webform_digest_form(&$form_state, $node) {
   $form['hourly_granularity'] = array(
     '#type' => 'select',
     '#title' => t('Hour'),
-    '#default_value' => isset($record['hourly_granularity']) ? $record['hourly_granularity'] : 0,
+    '#default_value' => isset($digest_conf['hourly_granularity']) ? $digest_conf['hourly_granularity'] : 0,
     '#options' => range(0, 23),
     '#description' => t('Choose time when digest should be sent.'),
   );
   $form['sent'] = array(
     '#type' => 'value',
-    '#value' => $record['sent'],
+    '#value' => $digest_conf['sent'],
   );
 
   // Prepare download form state
-  $download_form_state = unserialize($record['settings']);
+  $download_form_state = unserialize($digest_conf['settings']);
 
   // Get download form
   module_load_include('inc', 'webform', 'includes/webform.report');
@@ -114,20 +114,20 @@ function webform_digest_form_submit($form, &$form_state) {
   if ($form_state['values']['op'] == t('Save configuration')) {
 
     // Create record object to save.
-    $record = new stdClass();
+    $digest_conf = new stdClass();
 
     // Add nid to record.
-    $record->nid = $form_state['values']['node']->nid;
+    $digest_conf->nid = $form_state['values']['node']->nid;
 
     // Check period and add granularity field to record.
     if (isset($form_state['values']['daily_granularity_' . $form_state['values']['period']])) {
-      $record->daily_granularity = $form_state['values']['daily_granularity_' . $form_state['values']['period']];
+      $digest_conf->daily_granularity = $form_state['values']['daily_granularity_' . $form_state['values']['period']];
     }
 
     // Add other fields to record.
     $fields = array('enabled', 'new_data', 'period', 'sent', 'hourly_granularity');
     foreach ($fields as $field) {
-      $record->$field = $form_state['values'][$field];
+      $digest_conf->$field = $form_state['values'][$field];
     }
 
     // Unset fields from $form_state. We need to have only download form results here.
@@ -145,11 +145,11 @@ function webform_digest_form_submit($form, &$form_state) {
     }
 
     // Add serialized $form_state of download form to record.
-    $record->settings = serialize($form_state);
+    $digest_conf->settings = serialize($form_state);
 
     // Update record in database.
-    db_query('DELETE FROM {webform_digest} WHERE nid=%d', array($record->nid));
-    drupal_write_record('webform_digest', $record);
+    db_query('DELETE FROM {webform_digest} WHERE nid=%d', array($digest_conf->nid));
+    drupal_write_record('webform_digest', $digest_conf);
   } elseif ($form_state['values']['op'] == t('Reset')) {
     db_query('DELETE FROM {webform_digest} WHERE nid=%d', array($form_state['values']['node']->nid));
   } elseif ($form_state['values']['op'] == t('Test delivery')) {
@@ -184,10 +184,10 @@ function _webform_digest_send_digest($nid) {
   $node = node_load($nid, NULL, TRUE);
 
   // Get record from database.
-  $record = db_fetch_array(db_query('SELECT * FROM {webform_digest} WHERE nid=%d', array($node->nid)));
+  $digest_conf = db_fetch_array(db_query('SELECT * FROM {webform_digest} WHERE nid=%d', array($node->nid)));
 
   // Prepare download form state
-  $download_form_state = unserialize($record['settings']);
+  $download_form_state = unserialize($digest_conf['settings']);
 
   // Add $node to $form_state.
   $download_form_state['values']['node'] = $node;
@@ -262,12 +262,13 @@ function _webform_digest_send_digest($nid) {
   $download_form_state['values']['format'] = $format . '_digest';
 
   // Prepare array of emails to send.
-  $custom_emails = array();
+  $emails = array();
   $maps = array();
-  foreach ($node->webform['emails'] as $key => $email) {
+  $emails_conf = $node->webform['emails'];
+  foreach ($emails_conf as $key => $email) {
     if (valid_email_address($email['email'])) {
       // Save custom emails.
-      $emails[] = $email['email'];
+      $emails[$key] = $email['email'];
     } elseif (is_numeric($email['email']) && $node->webform['components'][$email['email']]['type'] == 'mapping') {
       // Prepare map for mapping component, which is selected as email to.
       $items = explode("\n", $node->webform['components'][$email['email']]['extra']['items']);
@@ -276,26 +277,29 @@ function _webform_digest_send_digest($nid) {
         $address = trim($item_arr[1]);
         $cid =  $node->webform['components'][$email['email']]['extra']['mapped_component'];
         $mapped_value = trim($item_arr[0]);
-        $maps[$address][$cid][] = $mapped_value;
+        $maps[$key][$address][$cid][] = $mapped_value;
       }
     }
   }
 
   // Set global variables, which acts as arguments to overriden exporter.
   $GLOBALS['webform_digest_nid'] = $node->nid;
-  if ($record['new_data'] && $record['sent']) {
-    $GLOBALS['webform_digest_sent'] = $record['sent'];
+  if ($digest_conf['new_data'] && $digest_conf['sent']) {
+    $GLOBALS['webform_digest_sent'] = $digest_conf['sent'];
   }
   // Send digest to custom emails. Set global variable that prevents exiting. See webform.patch.
-  _webform_digest_send_digest_email($emails, $download_form_state, $node);
+  foreach ($emails as $key => $email)
+  _webform_digest_send_digest_email(array($email), $emails_conf, $key, $download_form_state, $node);
   // Send digest to mapped emails.
-  foreach ($maps as $email => $map) {
-    // Pass Map.
-    $GLOBALS['webform_digest_map'] = $map;
-    // Reset exported row counter.
-    $GLOBALS['webform_digest_count'] = 0;
-    // Submit and email digest.
-    _webform_digest_send_digest_email(array($email), $download_form_state, $node);
+  foreach ($maps as $key => $data) {
+    foreach ($data as $email => $map) {
+      // Pass Map.
+      $GLOBALS['webform_digest_map'] = $map;
+      // Reset exported row counter.
+      $GLOBALS['webform_digest_count'] = 0;
+      // Submit and email digest.
+      _webform_digest_send_digest_email(array($email), $emails_conf, $key, $download_form_state, $node);
+    }
   }
 
   // Unser global variables.
@@ -313,7 +317,7 @@ function _webform_digest_send_digest($nid) {
 /**
  * Send digest to specific email. Called by _webform_digest_send_digest().
  */
-function _webform_digest_send_digest_email($emails, $download_form_state, $node) {
+function _webform_digest_send_digest_email($emails, &$emails_conf, $key,  $download_form_state, $node) {
   // Intercept download form submission, get file.
   $file_content = '';
   if (ob_start ()) {
@@ -337,15 +341,27 @@ function _webform_digest_send_digest_email($emails, $download_form_state, $node)
   }
 
   // Prepare email data.
-  $mail_from = variable_get('site_mail', '');
-  $subject = 'Webform digest: ' . $node->title;
+  $sender = array();
+  if (!($emails_conf[$key]['from_address'] == 'default' || is_numeric($emails_conf[$key]['from_address']))) {
+    $sender['mail'] = $emails_conf[$key]['from_address'];
+  }
+  if (!($emails_conf[$key]['from_name'] == 'default' || is_numeric($emails_conf[$key]['from_name']))) {
+    $sender['name'] = $emails_conf[$key]['from_name'];
+  } else {
+    $sender['name'] = _webform_filter_values(webform_variable_get('webform_default_from_name'), $node);
+  }
+  if ($emails_conf[$key]['subject'] == 'default' || is_numeric($emails_conf[$key]['subject'])) {
+    $subject = 'Webform digest: ' . $node->title;
+  } else {
+    $subject = $emails_conf[$key]['subject'];
+  }
   $message = 'Webform digest is in attachment.';
   $file = array(
-      'filename' => $headers['filename'],
-      'filemime' => $headers['content-type'],
-      'filecontent' => $file_content
+    'filename' => $headers['filename'],
+    'filemime' => $headers['content-type'],
+    'filecontent' => $file_content
   );
   
   // Send emails
-  mimemail($mail_from, $emails, $subject, $message, true, array(), NULL, array($file), 'webform_digest');
+  mimemail($sender, $emails, $subject, $message, true, array(), NULL, array($file), 'webform_digest');
 }
