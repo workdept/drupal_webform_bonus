@@ -60,10 +60,16 @@ function webform_digest_form_alter(&$form, &$form_state, $form_id) {
         unset($form[$element . '_option']['#options']['component']);
         unset($form[$element . '_component']);
       }
+      // Leave only mapping and select components for for E-mail to address
+      foreach ($form['email_component']['#options'] as $component => $name) {
+        $component_type = $form['node']['#value']->webform['components'][$component]['type'];
+        if (!($component_type == 'select' || $component_type == 'mapping')) {
+          unset($form['email_component']['#options'][$component]);
+        }
+      }
     }
   }
 }
-
 
 
 /**

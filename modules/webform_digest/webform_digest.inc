@@ -66,10 +66,10 @@ function webform_digest_form(&$form_state, $node) {
   );
   $form['hourly_granularity'] = array(
     '#type' => 'select',
-    '#title' => t('Hour'),
+    '#title' => t('Hour (24 hour clock)'),
     '#default_value' => isset($digest_conf['hourly_granularity']) ? $digest_conf['hourly_granularity'] : 0,
     '#options' => range(0, 23),
-    '#description' => t('Choose time when digest should be sent.'),
+    '#description' => t('Choose time when digest should be sent (24 hour clock).'),
   );
   $form['sent'] = array(
     '#type' => 'value',
@@ -231,13 +231,16 @@ function _webform_digest_send_digest($nid) {
               // Find matching between mapping and mapped components values.
               // In case if it matches set return flag to false.
               foreach (\$this->map as \$cid => \$values) {
-                \$match = array_intersect(
-                  \$this->submissions[\$data[\$this->sid_index]]->data[\$cid]['value'],
-                  \$values
-                );
-                if (!empty(\$match)) {
-                 \$return = false;
-                  break;
+                if (is_array(\$this->submissions[\$data[\$this->sid_index]]->data[\$cid]['value'])) {
+                  //dpm(\$this->submissions[\$data[\$this->sid_index]]->data[\$cid]['value']);
+                  \$match = array_intersect(
+                    \$this->submissions[\$data[\$this->sid_index]]->data[\$cid]['value'],
+                    \$values
+                  );
+                  if (!empty(\$match)) {
+                   \$return = false;
+                    break;
+                  }
                 }
               }
               if (\$return) return;
@@ -275,9 +278,20 @@ function _webform_digest_send_digest($nid) {
       foreach ($items as $item) {
         $item_arr = explode('|', $item);
         $address = trim($item_arr[1]);
+        if (!valid_email_address($address)) continue;
         $cid =  $node->webform['components'][$email['email']]['extra']['mapped_component'];
         $mapped_value = trim($item_arr[0]);
         $maps[$key][$address][$cid][] = $mapped_value;
+      }
+    } elseif (is_numeric($email['email']) && $node->webform['components'][$email['email']]['type'] == 'select') {
+      // Process select compoment as self-mapped
+      $items = explode("\n", $node->webform['components'][$email['email']]['extra']['items']);
+      foreach ($items as $item) {
+        $item_arr = explode('|', $item);
+        $address = trim($item_arr[0]);
+        if (!valid_email_address($address)) continue;
+        $cid = $node->webform['components'][$email['email']]['cid'];
+        $maps[$key][$address][$cid][] = $address;
       }
     }
   }
