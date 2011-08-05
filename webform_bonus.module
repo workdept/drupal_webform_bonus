@@ -82,14 +82,14 @@ class webform_bonus_exporter_delimited_txt extends webform_exporter_delimited {
     // Convert tabs.
     if ($this->delimiter == "\t") {
       $extension = 'txt';
-      $content_type = 'text/tab-separated-values';
+      $content_type = 'text/plain';
     }
     else {
       $extension = 'txt';
-      $content_type = 'text/csv';
+      $content_type = 'text/plain';
     }
 
-    drupal_set_header("Content-Type: $content_type");
-    drupal_set_header("Content-Disposition: attachment; filename=$filename.$extension");
+    drupal_add_http_header('Content-Type', $content_type);
+    drupal_add_http_header('Content-Disposition', "attachment; filename=$filename.$extension");
   }
 }

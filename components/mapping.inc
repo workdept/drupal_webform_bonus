@@ -28,7 +28,7 @@ function _webform_defaults_mapping() {
 function _webform_theme_mapping() {
   return array(
     'webform_display_mapping' => array(
-      'arguments' => array('element' => NULL),
+      'render element' => 'element',
     ),
   );
 }
@@ -51,7 +51,6 @@ function _webform_edit_mapping($component) {
   foreach ($node->webform['components'] as $id => $c) {
     $options[$id] = $c['name'];
   }
-  unset($options[$component['cid']]);
 
   $form['extra']['mapped_component'] = array(
     '#type' => 'select',
@@ -148,13 +147,12 @@ function _webform_render_mapping($component, $value = NULL, $filter = TRUE) {
 function _webform_display_mapping($component, $value, $format = 'html') {
   $element = array(
     '#title' => t('!name (hidden)', array('!name' => $component['name'])),
-    '#value' => isset($value[0]) ? $value[0] : NULL,
+    '#markup' => isset($value[0]) ? $value[0] : NULL,
     '#weight' => $component['weight'],
     '#theme' => 'webform_display_mapping',
     '#format' => $format,
     '#theme' => 'webform_display_mapping',
-    '#theme_wrappers' => $format == 'html' ? array('webform_element', 'webform_element_wrapper') : array('webform_element_text'),
-    '#post_render' => array('webform_element_wrapper'),
+    '#theme_wrappers' => $format == 'text' ? array('webform_element_text') : array('webform_element'),
     '#webform_component' => $component,
   );
 
@@ -170,8 +168,10 @@ function _webform_display_mapping($component, $value, $format = 'html') {
   return $element;
 }
 
-function theme_webform_display_mapping($element) {
-  return $element['#format'] == 'html' ? check_plain($element['#value']) : $element['#value'];
+function theme_webform_display_mapping($variables) {
+  $element = $variables['element'];
+  
+  return $element['#format'] == 'html' ? check_plain($element['#markup']) : $element['#markup'];
 }
 
 /**
