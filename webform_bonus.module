@@ -20,6 +20,15 @@ function webform_bonus_webform_component_info() {
         'group' => FALSE,
       ),
     ),
+    'summary' => array(
+      'label' => t('Summary'),
+      'description' => t('Creates Review page.'),
+      'file' => 'components/summary.inc',
+      'features' => array(
+        'required' => FALSE,
+        'conditional' => FALSE,
+      ),
+    ),
   );
 }
 
