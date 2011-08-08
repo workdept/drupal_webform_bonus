@@ -48,12 +48,10 @@ function _webform_render_summary($component) {
  */
 function _set_summary($form_element, &$form_state) {
   global $user;
-  
-  $submitted = $form_state['values']['submitted'];
-  foreach ($submitted as $key => $value) {
-    if (!is_numeric($key))
-      unset($submitted[$key]);
-  }
+
+  module_load_include('inc', 'webform', 'includes/webform.submissions');
+
+  $submitted = $form_state['storage']['submitted'];
   
   $node = $form_state['build_info']['args'][0];
   foreach ($node->webform['components'] as $key => $component) {
