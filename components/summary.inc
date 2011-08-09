@@ -16,7 +16,7 @@ function _webform_defaults_summary() {
     'weight' => 0,
     'value' => '',
     'extra' => array(
-      //'format' => FILTER_FORMAT_DEFAULT,
+      'components' => '',
     ),
   );
 }
@@ -24,20 +24,37 @@ function _webform_defaults_summary() {
 /**
  * Implementation of _webform_edit_component().
  */
-function _webform_edit_summary($currfield) {
-  $edit_fields = array();
-  return $edit_fields;
+function _webform_edit_summary($component) {
+  $form = array();
+
+  $node = node_load($component['nid']);
+  $options = array();
+  foreach ($node->webform['components'] as $id => $c) {
+    $options[$id] = $c['name'];
+  }
+
+  $form['extra']['components'] = array(
+    '#type' => 'select',
+    '#title' => t('Select components to show in summary'),
+    '#default_value' => $component['extra']['components'],
+    '#options' => $options,
+    '#multiple' => TRUE,
+    '#description' => t('Select component to which current component should be mapped'),
+  );
+  
+  return $form;
 }
 
 /**
  * Implementation of _webform_render_component().
  */
 function _webform_render_summary($component) {
- $form_item['results'] = array(
+  $form_item['results'] = array(
     '#type' => 'markup',
     '#weight' => $component['weight'],
     '#title' => '',//$component['name'],
     '#markup' => '',
+    '#cid' => $component['cid'],
     '#after_build' => array('_set_summary'),  //Set the value property by calling _set_summary 
   );      
   return $form_item;
@@ -48,14 +65,20 @@ function _webform_render_summary($component) {
  */
 function _set_summary($form_element, &$form_state) {
   global $user;
-
   module_load_include('inc', 'webform', 'includes/webform.submissions');
-
-  $submitted = $form_state['storage']['submitted'];
   
-  $node = $form_state['build_info']['args'][0];
+  $submitted = $form_state['storage']['submitted'];
+  $node = clone $form_state['build_info']['args'][0];
+  $allowed_components = $node->webform['components'][$form_element['#cid']]['extra']['components'];
+
+  // Show only selected components
+  foreach ($submitted as $key => $component) {
+    if (!in_array($key, $allowed_components)) {
+      unset($submitted[$key]);
+    }
+  }
   foreach ($node->webform['components'] as $key => $component) {
-    if ($component['type'] == 'pagebreak' || $component['type'] == 'summary') {
+    if (!in_array($key, $allowed_components)) {
       unset($node->webform['components'][$key]);
     }
   }
