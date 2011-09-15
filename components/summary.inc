@@ -49,15 +49,15 @@ function _webform_edit_summary($component) {
  * Implementation of _webform_render_component().
  */
 function _webform_render_summary($component) {
-  $form_item['results'] = array(
-    '#type' => 'markup',
+  $element = array(
+    '#type' => 'item',
     '#weight' => $component['weight'],
-    '#title' => '',//$component['name'],
+    '#title' => $component['extra']['title_display'] == 'none' ? '' : $component['name'],
     '#markup' => '',
     '#cid' => $component['cid'],
-    '#after_build' => array('_set_summary'),  //Set the value property by calling _set_summary 
+    '#after_build' => array('_set_summary'),  //Set the value property by calling _set_summary
   );      
-  return $form_item;
+  return $element;
 }
 
 /**
