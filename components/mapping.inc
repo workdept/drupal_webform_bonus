@@ -178,29 +178,31 @@ function theme_webform_display_mapping($variables) {
  * Implementation of _webform_analysis_component().
  */
 function _webform_analysis_mapping($component, $sids = array()) {
-  $placeholders = count($sids) ? array_fill(0, count($sids), "'%s'") : array();
-  $sidfilter = count($sids) ? " AND sid in (" . implode(",", $placeholders) . ")" : "";
-  $query = 'SELECT data ' .
-    ' FROM {webform_submitted_data} ' .
-    ' WHERE nid = %d ' .
-    ' AND cid = %d ' . $sidfilter;
+  $query = db_select('webform_submitted_data', 'wsd', array('fetch' => PDO::FETCH_ASSOC))
+    ->fields('wsd', array('data'))
+    ->condition('nid', $component['nid'])
+    ->condition('cid', $component['cid']);
+
+  if (count($sids)) {
+    $query->condition('sid', $sids, 'IN');
+  }
+
   $nonblanks = 0;
   $submissions = 0;
   $wordcount = 0;
 
-  $result = db_query($query, array_merge(array($component['nid'], $component['cid']), $sids));
-  while ($data = db_fetch_array($result)) {
-    if ( strlen(trim($data['data'])) > 0 ) {
+  $result = $query->execute();
+  foreach ($result as $data) {
+    if (drupal_strlen(trim($data['data'])) > 0) {
       $nonblanks++;
       $wordcount += str_word_count(trim($data['data']));
     }
     $submissions++;
   }
 
-  $rows[0] = array( t('Empty'), ($submissions - $nonblanks));
-  $rows[1] = array( t('Non-empty'), $nonblanks);
-  $rows[2] = array( t('Average submission length in words (ex blanks)'),
-                    ($nonblanks !=0 ? number_format($wordcount/$nonblanks, 2) : '0'));
+  $rows[0] = array(t('Left Blank'), ($submissions - $nonblanks));
+  $rows[1] = array(t('User entered value'), $nonblanks);
+  $rows[2] = array(t('Average submission length in words (ex blanks)'), ($nonblanks != 0 ? number_format($wordcount/$nonblanks, 2) : '0'));
   return $rows;
 }
 
